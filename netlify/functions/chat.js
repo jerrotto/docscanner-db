@@ -9,22 +9,23 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Method Not Allowed' };
 
   try {
-    const body = JSON.parse(event.body);
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const { prompt, image, mimeType } = JSON.parse(event.body);
+    const apiKey = process.env.GEMINI_API_KEY;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const parts = [];
+    if (image) parts.push({ inlineData: { mimeType, data: image } });
+    parts.push({ text: prompt });
+
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        ...body
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts }] })
     });
+
     const data = await response.json();
-    return { statusCode: 200, headers, body: JSON.stringify(data) };
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    return { statusCode: 200, headers, body: JSON.stringify({ text }) };
   } catch (err) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
