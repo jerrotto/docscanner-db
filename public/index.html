@@ -62,13 +62,11 @@ input[type=text]:focus{border-color:var(--blue)}
   <button class="gear-btn" onclick="show('pg-settings')">⚙️</button>
 </div>
 
-<!-- HOME -->
 <div id="pg-home" class="pg">
   <button class="btn btn-blue" onclick="initNew()">+ Nuovo Database</button>
   <div id="db-list"></div>
 </div>
 
-<!-- SETTINGS -->
 <div id="pg-settings" class="pg">
   <button class="back" onclick="show('pg-home',renderHome)">← Indietro</button>
   <div class="h2">Impostazioni</div>
@@ -83,7 +81,6 @@ input[type=text]:focus{border-color:var(--blue)}
   <button class="btn btn-red" style="margin-top:20px" onclick="if(confirm('Eliminare tutto?'))resetAll()">🗑 Svuota tutti i database</button>
 </div>
 
-<!-- NEW DB -->
 <div id="pg-newdb" class="pg">
   <button class="back" onclick="show('pg-home',renderHome)">← Indietro</button>
   <div class="h2">Nuovo Database</div>
@@ -98,7 +95,6 @@ input[type=text]:focus{border-color:var(--blue)}
   <button class="btn btn-ghost" style="margin-top:8px" onclick="manualSetup()">✏️ Configura colonne manualmente</button>
 </div>
 
-<!-- SETUP COLS -->
 <div id="pg-cols" class="pg">
   <button class="back" onclick="show('pg-newdb')">← Indietro</button>
   <div class="h2">Definisci le colonne</div>
@@ -112,7 +108,6 @@ input[type=text]:focus{border-color:var(--blue)}
   <button id="btn-confirm" class="btn btn-blue" style="margin-top:14px" onclick="confirmCols()"></button>
 </div>
 
-<!-- VIEW DB -->
 <div id="pg-viewdb" class="pg">
   <button class="back" onclick="show('pg-home',renderHome)">← Indietro</button>
   <div style="margin-bottom:14px">
@@ -126,7 +121,6 @@ input[type=text]:focus{border-color:var(--blue)}
   <div id="vdb-records"></div>
 </div>
 
-<!-- ADD DOC -->
 <div id="pg-add" class="pg">
   <button class="back" onclick="show('pg-viewdb',renderViewDb)">← Indietro</button>
   <div class="h2">Aggiungi documento</div>
@@ -137,7 +131,6 @@ input[type=text]:focus{border-color:var(--blue)}
   <button id="btn-extract" class="btn btn-blue" style="display:none" onclick="doAddExtract()">🔍 Estrai dati con AI</button>
 </div>
 
-<!-- REVIEW -->
 <div id="pg-review" class="pg">
   <button class="back" onclick="show('pg-add')">← Indietro</button>
   <div class="h2">Verifica dati estratti</div>
@@ -146,7 +139,6 @@ input[type=text]:focus{border-color:var(--blue)}
   <button class="btn btn-blue" style="margin-top:16px" onclick="saveRow()">💾 Salva nel database</button>
 </div>
 
-<!-- EDIT RECORD -->
 <div id="pg-edit" class="pg">
   <button class="back" onclick="show('pg-viewdb',renderViewDb)">← Indietro</button>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -157,7 +149,6 @@ input[type=text]:focus{border-color:var(--blue)}
   <button class="btn btn-blue" style="margin-top:16px" onclick="saveEdit()">💾 Salva modifiche</button>
 </div>
 
-<!-- MODAL NUOVI CAMPI -->
 <div id="modal-new" class="ovl" style="display:none">
   <div class="sheet">
     <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:8px">🆕 Trovati nuovi campi</div>
@@ -169,10 +160,10 @@ input[type=text]:focus{border-color:var(--blue)}
 </div>
 
 <script>
-// ─── CONFIGURA QUI ───────────────────────────────────────────
-const SUPABASE_URL = 'https://aaujfwuzirogwycnimge.supabase.co/rest/v1/';
+// ─── CONFIGURA QUI ──────────────────────────────────────────
+const SUPABASE_URL = 'https://aaujfwuzirogwycnimge.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdWpmd3V6aXJvZ3d5Y25pbWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMDY2NTcsImV4cCI6MjA5NTU4MjY1N30.bPGXwG4cklhQRSdCJzuA3BOvzY8XK3Spht8g3P8qk9w';
-// ─────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -182,7 +173,6 @@ let imgB64={}, imgMime={};
 let extractedData={}, newFieldsData={};
 let pendingCols=[], pendingIsManual=false, editData={};
 
-// ─── SUPABASE ────────────────────────────────────────────────
 async function loadData(){
   try{
     const {data:dbRows}=await sb.from('scan_databases').select('*');
@@ -196,11 +186,9 @@ async function saveDatabase(db){await sb.from('scan_databases').upsert({id:db.id
 async function saveRecord(dbId,record){const{_id,_data,...data}=record;await sb.from('scan_records').upsert({id:_id,database_id:dbId,data,record_date:_data});}
 async function resetAll(){await sb.from('scan_databases').delete().neq('id','');dbs={};renderHome();}
 
-// ─── NAV ─────────────────────────────────────────────────────
 function show(id,fn){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));document.getElementById(id).classList.add('on');window.scrollTo(0,0);if(fn)fn();}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-// ─── HOME ────────────────────────────────────────────────────
 function renderHome(){
   const el=document.getElementById('db-list');
   const list=Object.values(dbs);
@@ -220,7 +208,6 @@ function renderHome(){
 function openDb(id){curDbId=id;show('pg-viewdb',renderViewDb);}
 async function delDb(id){if(!confirm('Eliminare il database?'))return;await sb.from('scan_databases').delete().eq('id',id);delete dbs[id];renderHome();}
 
-// ─── VIEW DB ─────────────────────────────────────────────────
 function renderViewDb(){
   const db=dbs[curDbId];if(!db)return;
   document.getElementById('vdb-name').textContent=db.name;
@@ -266,7 +253,6 @@ function downloadCSV(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=db.name+'.csv';a.click();
 }
 
-// ─── NEW DB ──────────────────────────────────────────────────
 function initNew(){document.getElementById('new-name').value='';document.getElementById('prev-new').style.display='none';document.getElementById('btn-analyze').style.display='none';imgB64.new=null;show('pg-newdb');}
 function loadImg(input,key){
   const file=input.files[0];if(!file)return;
@@ -288,7 +274,6 @@ function manualSetup(){
   renderSetupCols();show('pg-cols');
 }
 
-// ─── AI (GEMINI) ─────────────────────────────────────────────
 function setLoading(btnId,on,msg=''){
   const b=document.getElementById(btnId);if(!b)return;
   b.disabled=on;
@@ -319,7 +304,6 @@ Valori = testi trovati. Ometti campi assenti. Solo JSON puro, niente altro.`,'ne
   finally{setLoading('btn-analyze',false);}
 }
 
-// ─── SETUP COLS ──────────────────────────────────────────────
 function renderSetupCols(){
   document.getElementById('cols-hint').textContent=pendingIsManual?'Aggiungi i campi del tuo database:':"L'AI ha suggerito questi campi. Modifica o aggiungi:";
   renderColTags();
@@ -346,7 +330,6 @@ async function confirmCols(){
   show('pg-viewdb',renderViewDb);
 }
 
-// ─── ADD DOC ─────────────────────────────────────────────────
 function initAddDoc(){
   const db=dbs[curDbId];if(!db)return;
   document.getElementById('add-fields').innerHTML=`<strong>Campi:</strong> ${db.columns.map(esc).join(' · ')}`;
@@ -361,7 +344,6 @@ async function doAddExtract(){
     const text=await callAI(`Analizza questo documento. Due compiti:
 1. Estrai valori per questi campi NOTI: ${db.columns.join(', ')}
 2. Cerca altri dati NON in quella lista
-
 Rispondi SOLO con questo JSON:
 {"known":{${db.columns.map(c=>`"${c}":""`).join(',')}},"new":{"CampoNuovo":"valore"}}
 Se non ci sono campi nuovi, "new" deve essere {}.`,'add');
@@ -400,7 +382,6 @@ async function saveRow(){
   show('pg-viewdb',renderViewDb);
 }
 
-// ─── INIT ────────────────────────────────────────────────────
 (async()=>{await loadData();document.getElementById('loading-overlay').style.display='none';renderHome();show('pg-home');})();
 </script>
 </body>
