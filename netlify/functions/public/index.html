@@ -404,4 +404,374 @@ async function saveRow(){
 (async()=>{await loadData();document.getElementById('loading-overlay').style.display='none';renderHome();show('pg-home');})();
 </script>
 </body>
+</html>.empty .ico{font-size:48px;margin-bottom:12px}
+.img-prev{width:100%;border-radius:10px;margin-top:12px;max-height:220px;object-fit:cover;border:1px solid var(--border);display:block}
+.h2{font-size:18px;font-weight:600;color:var(--text);margin-bottom:8px}
+.sub{font-size:13px;color:var(--muted);margin-bottom:14px}
+.ovl{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;z-index:100}
+.sheet{background:var(--surf);border-radius:16px 16px 0 0;padding:20px 16px 40px;width:100%;max-height:80vh;overflow-y:auto}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.gear-btn{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:7px 10px;font-size:15px;cursor:pointer}
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:12px;font-size:14px;color:var(--muted)}
+.loader{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay" class="loading-overlay">
+  <div class="loader"></div>
+  <div>Caricamento...</div>
+</div>
+
+<div class="hdr">
+  <div class="hdr-l">
+    <span style="font-size:24px">📄</span>
+    <div><h1>DocScanner DB</h1><p>Scansiona · Estrai · Organizza</p></div>
+  </div>
+  <button class="gear-btn" onclick="show('pg-settings')">⚙️</button>
+</div>
+
+<!-- HOME -->
+<div id="pg-home" class="pg">
+  <button class="btn btn-blue" onclick="initNew()">+ Nuovo Database</button>
+  <div id="db-list"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="pg-settings" class="pg">
+  <button class="back" onclick="show('pg-home',renderHome)">← Indietro</button>
+  <div class="h2">Impostazioni</div>
+  <div class="card" style="cursor:default">
+    <div style="font-weight:600;font-size:14px;margin-bottom:6px">📱 Aggiungi a iPhone</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.7">Safari → <strong>Condividi</strong> → <strong>Aggiungi a schermata Home</strong></div>
+  </div>
+  <div class="card" style="cursor:default">
+    <div style="font-weight:600;font-size:14px;margin-bottom:6px">☁️ Database cloud</div>
+    <div style="font-size:13px;color:var(--muted)">Dati salvati su Supabase, accessibili da qualsiasi dispositivo.</div>
+  </div>
+  <button class="btn btn-red" style="margin-top:20px" onclick="if(confirm('Eliminare tutto?'))resetAll()">🗑 Svuota tutti i database</button>
+</div>
+
+<!-- NEW DB -->
+<div id="pg-newdb" class="pg">
+  <button class="back" onclick="show('pg-home',renderHome)">← Indietro</button>
+  <div class="h2">Nuovo Database</div>
+  <label class="lbl">Nome del database</label>
+  <input type="text" id="new-name" placeholder="es. Clienti 2026...">
+  <div style="margin-top:20px;font-weight:600;font-size:14px;margin-bottom:6px">📤 Carica il primo documento</div>
+  <div class="sub">L'AI analizzerà il documento e suggerirà i campi automaticamente.</div>
+  <input type="file" id="f-new" accept="image/*" style="display:none" onchange="loadImg(this,'new')">
+  <button class="btn btn-green" onclick="document.getElementById('f-new').click()">📷 Scatta foto o scegli file</button>
+  <img id="prev-new" class="img-prev" style="display:none">
+  <button id="btn-analyze" class="btn btn-blue" style="display:none" onclick="doFirstExtract()">🔍 Analizza e configura colonne</button>
+  <button class="btn btn-ghost" style="margin-top:8px" onclick="manualSetup()">✏️ Configura colonne manualmente</button>
+</div>
+
+<!-- SETUP COLS -->
+<div id="pg-cols" class="pg">
+  <button class="back" onclick="show('pg-newdb')">← Indietro</button>
+  <div class="h2">Definisci le colonne</div>
+  <div id="cols-hint" class="sub"></div>
+  <div id="cols-tags" class="tags" style="min-height:32px;margin-bottom:14px"></div>
+  <div style="display:flex;gap:8px">
+    <input type="text" id="col-input" placeholder="Aggiungi campo..." onkeydown="if(event.key==='Enter')addCol()">
+    <button class="btn-sm" style="background:var(--green);color:#fff" onclick="addCol()">+</button>
+  </div>
+  <div id="extracted-prev"></div>
+  <button id="btn-confirm" class="btn btn-blue" style="margin-top:14px" onclick="confirmCols()"></button>
+</div>
+
+<!-- VIEW DB -->
+<div id="pg-viewdb" class="pg">
+  <button class="back" onclick="show('pg-home',renderHome)">← Indietro</button>
+  <div style="margin-bottom:14px">
+    <div id="vdb-name" style="font-size:18px;font-weight:700;color:var(--text)"></div>
+    <div id="vdb-meta" style="font-size:12px;color:var(--muted);margin-top:2px"></div>
+  </div>
+  <div class="row2">
+    <button class="btn btn-blue" onclick="initAddDoc()">+ Aggiungi doc</button>
+    <button class="btn btn-green" onclick="downloadCSV()">⬇️ CSV</button>
+  </div>
+  <div id="vdb-records"></div>
+</div>
+
+<!-- ADD DOC -->
+<div id="pg-add" class="pg">
+  <button class="back" onclick="show('pg-viewdb',renderViewDb)">← Indietro</button>
+  <div class="h2">Aggiungi documento</div>
+  <div id="add-fields" class="info"></div>
+  <input type="file" id="f-add" accept="image/*" style="display:none" onchange="loadImg(this,'add')">
+  <button class="btn btn-green" onclick="document.getElementById('f-add').click()">📷 Scatta foto o scegli file</button>
+  <img id="prev-add" class="img-prev" style="display:none">
+  <button id="btn-extract" class="btn btn-blue" style="display:none" onclick="doAddExtract()">🔍 Estrai dati con AI</button>
+</div>
+
+<!-- REVIEW -->
+<div id="pg-review" class="pg">
+  <button class="back" onclick="show('pg-add')">← Indietro</button>
+  <div class="h2">Verifica dati estratti</div>
+  <div class="sub">Controlla e correggi prima di salvare:</div>
+  <div id="review-fields"></div>
+  <button class="btn btn-blue" style="margin-top:16px" onclick="saveRow()">💾 Salva nel database</button>
+</div>
+
+<!-- EDIT RECORD -->
+<div id="pg-edit" class="pg">
+  <button class="back" onclick="show('pg-viewdb',renderViewDb)">← Indietro</button>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="h2" style="margin:0">Dettaglio record</div>
+    <button onclick="delRecord(curRecId,true)" style="background:var(--red-s);color:var(--red);border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer">Elimina</button>
+  </div>
+  <div id="edit-fields"></div>
+  <button class="btn btn-blue" style="margin-top:16px" onclick="saveEdit()">💾 Salva modifiche</button>
+</div>
+
+<!-- MODAL NUOVI CAMPI -->
+<div id="modal-new" class="ovl" style="display:none">
+  <div class="sheet">
+    <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:8px">🆕 Trovati nuovi campi</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Questo documento contiene dati extra. Aggiungerli al database?</div>
+    <div id="new-fields-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+    <button class="btn btn-green" onclick="acceptNewFields()">✅ Sì, aggiungi</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="rejectNewFields()">No, usa solo i campi esistenti</button>
+  </div>
+</div>
+
+<script>
+// ─── CONFIGURA QUI ───────────────────────────────────────────
+const SUPABASE_URL = https://aaujfwuzirogwycnimge.supabase.co/rest/v1/;
+const SUPABASE_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhdWpmd3V6aXJvZ3d5Y25pbWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMDY2NTcsImV4cCI6MjA5NTU4MjY1N30.bPGXwG4cklhQRSdCJzuA3BOvzY8XK3Spht8g3P8qk9w;
+// ─────────────────────────────────────────────────────────────
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let dbs={}, curDbId=null, curRecId=null;
+let imgB64={}, imgMime={};
+let extractedData={}, newFieldsData={};
+let pendingCols=[], pendingIsManual=false, editData={};
+
+// ─── SUPABASE ────────────────────────────────────────────────
+async function loadData(){
+  try{
+    const {data:dbRows}=await sb.from('scan_databases').select('*');
+    const {data:recRows}=await sb.from('scan_records').select('*');
+    dbs={};
+    (dbRows||[]).forEach(d=>{dbs[d.id]={id:d.id,name:d.name,columns:d.columns||[],rows:[],createdAt:d.created_at};});
+    (recRows||[]).forEach(r=>{if(dbs[r.database_id])dbs[r.database_id].rows.push({_id:r.id,_data:r.record_date,...r.data});});
+  }catch(e){console.error(e);}
+}
+async function saveDatabase(db){await sb.from('scan_databases').upsert({id:db.id,name:db.name,columns:db.columns,created_at:db.createdAt});}
+async function saveRecord(dbId,record){const{_id,_data,...data}=record;await sb.from('scan_records').upsert({id:_id,database_id:dbId,data,record_date:_data});}
+async function resetAll(){await sb.from('scan_databases').delete().neq('id','');dbs={};renderHome();}
+
+// ─── NAV ─────────────────────────────────────────────────────
+function show(id,fn){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));document.getElementById(id).classList.add('on');window.scrollTo(0,0);if(fn)fn();}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ─── HOME ────────────────────────────────────────────────────
+function renderHome(){
+  const el=document.getElementById('db-list');
+  const list=Object.values(dbs);
+  if(!list.length){el.innerHTML=`<div class="empty"><div class="ico">🗂️</div><div style="font-weight:500;font-size:16px">Nessun database ancora</div><div style="font-size:13px;margin-top:4px">Crea il primo per iniziare</div></div>`;return;}
+  el.innerHTML=list.map(d=>`
+    <div class="card" onclick="openDb('${d.id}')">
+      <div style="display:flex;justify-content:space-between">
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:15px;color:var(--text)">📊 ${esc(d.name)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">${d.rows.length} record · ${d.columns.length} colonne</div>
+          <div class="tags">${d.columns.slice(0,4).map(c=>`<span class="tag">${esc(c)}</span>`).join('')}${d.columns.length>4?`<span class="tag">+${d.columns.length-4}</span>`:''}</div>
+        </div>
+        <button onclick="event.stopPropagation();delDb('${d.id}')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--red)">🗑</button>
+      </div>
+    </div>`).join('');
+}
+function openDb(id){curDbId=id;show('pg-viewdb',renderViewDb);}
+async function delDb(id){if(!confirm('Eliminare il database?'))return;await sb.from('scan_databases').delete().eq('id',id);delete dbs[id];renderHome();}
+
+// ─── VIEW DB ─────────────────────────────────────────────────
+function renderViewDb(){
+  const db=dbs[curDbId];if(!db)return;
+  document.getElementById('vdb-name').textContent=db.name;
+  document.getElementById('vdb-meta').textContent=`${db.rows.length} record · ${db.columns.length} colonne`;
+  const el=document.getElementById('vdb-records');
+  if(!db.rows.length){el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--muted);font-size:14px">Nessun record</div>`;return;}
+  el.innerHTML=`<div style="margin-top:14px">${db.rows.map((row,i)=>`
+    <div class="card" style="margin-bottom:8px" onclick="openRecord('${row._id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:14px;color:var(--text)">${esc(row[db.columns[0]])||`Record ${i+1}`}${db.columns[1]&&row[db.columns[1]]?' '+esc(row[db.columns[1]]):''}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">${db.columns.slice(2,5).map(c=>row[c]?esc(row[c]):'').filter(Boolean).join(' · ')}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">${row._data||''}</div>
+        </div>
+        <button onclick="event.stopPropagation();delRecord('${row._id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:2px 4px">🗑</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+function openRecord(rid){
+  const db=dbs[curDbId];const rec=db.rows.find(r=>r._id===rid);if(!rec)return;
+  curRecId=rid;editData={...rec};
+  document.getElementById('edit-fields').innerHTML=db.columns.map(c=>`<label class="lbl">${esc(c)}</label><input type="text" id="ef-${esc(c.replace(/\s/g,'_'))}" value="${esc(rec[c]||'')}" placeholder="${esc(c)}">`).join('');
+  show('pg-edit');
+}
+async function saveEdit(){
+  const db=dbs[curDbId];
+  db.columns.forEach(c=>{const el=document.getElementById('ef-'+c.replace(/\s/g,'_'));if(el)editData[c]=el.value;});
+  dbs[curDbId].rows=db.rows.map(r=>r._id===curRecId?{...r,...editData}:r);
+  await saveRecord(curDbId,dbs[curDbId].rows.find(r=>r._id===curRecId));
+  show('pg-viewdb',renderViewDb);
+}
+async function delRecord(rid,fromEdit=false){
+  if(!confirm('Eliminare?'))return;
+  await sb.from('scan_records').delete().eq('id',rid);
+  dbs[curDbId].rows=dbs[curDbId].rows.filter(r=>r._id!==rid);
+  if(fromEdit)show('pg-viewdb',renderViewDb);else renderViewDb();
+}
+function downloadCSV(){
+  const db=dbs[curDbId];if(!db)return;
+  const header=[...db.columns,'Data'].join(',');
+  const rows=db.rows.map(r=>[...db.columns.map(c=>`"${(r[c]||'').replace(/"/g,'""')}"`),`"${r._data||''}"`].join(','));
+  const blob=new Blob([[header,...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=db.name+'.csv';a.click();
+}
+
+// ─── NEW DB ──────────────────────────────────────────────────
+function initNew(){document.getElementById('new-name').value='';document.getElementById('prev-new').style.display='none';document.getElementById('btn-analyze').style.display='none';imgB64.new=null;show('pg-newdb');}
+function loadImg(input,key){
+  const file=input.files[0];if(!file)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    imgB64[key]=ev.target.result.split(',')[1];imgMime[key]=file.type;
+    const prev=document.getElementById('prev-'+key);prev.src=ev.target.result;prev.style.display='block';
+    if(key==='new'&&document.getElementById('new-name').value.trim())document.getElementById('btn-analyze').style.display='block';
+    if(key==='add')document.getElementById('btn-extract').style.display='block';
+  };
+  rd.readAsDataURL(file);input.value='';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('new-name').addEventListener('input',function(){if(this.value.trim()&&imgB64.new)document.getElementById('btn-analyze').style.display='block';});
+});
+function manualSetup(){
+  if(!document.getElementById('new-name').value.trim()){alert('Inserisci prima un nome');return;}
+  pendingIsManual=true;extractedData={};pendingCols=['Nome','Cognome','Email','Telefono'];
+  renderSetupCols();show('pg-cols');
+}
+
+// ─── AI (GEMINI) ─────────────────────────────────────────────
+function setLoading(btnId,on,msg=''){
+  const b=document.getElementById(btnId);if(!b)return;
+  b.disabled=on;
+  if(on){b._label=b.innerHTML;b.innerHTML=`<span class="spin"></span>${msg}`;}
+  else if(b._label)b.innerHTML=b._label;
+}
+async function callAI(prompt,imgKey=null){
+  const body={prompt};
+  if(imgKey){body.image=imgB64[imgKey];body.mimeType=imgMime[imgKey];}
+  const r=await fetch('/.netlify/functions/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  return d.text||'{}';
+}
+function parseJSON(text){try{return JSON.parse(text.replace(/```json|```/g,'').trim());}catch{return {};}}
+
+async function doFirstExtract(){
+  const name=document.getElementById('new-name').value.trim();if(!name)return;
+  setLoading('btn-analyze',true,'Analisi documento...');
+  try{
+    const text=await callAI(`Analizza questo documento ed estrai tutti i dati di persone o clienti.
+Rispondi SOLO con un oggetto JSON. Chiavi = nomi campi in italiano (es:"Nome","Cognome","Email","Telefono","Indirizzo","CF","Data di nascita","Importo").
+Valori = testi trovati. Ometti campi assenti. Solo JSON puro, niente altro.`,'new');
+    const parsed=parseJSON(text);
+    pendingCols=Object.keys(parsed).length?Object.keys(parsed):['Nome','Cognome','Email','Telefono'];
+    extractedData=parsed;pendingIsManual=false;
+    renderSetupCols();show('pg-cols');
+  }catch(e){alert('Errore AI: '+e.message);}
+  finally{setLoading('btn-analyze',false);}
+}
+
+// ─── SETUP COLS ──────────────────────────────────────────────
+function renderSetupCols(){
+  document.getElementById('cols-hint').textContent=pendingIsManual?'Aggiungi i campi del tuo database:':"L'AI ha suggerito questi campi. Modifica o aggiungi:";
+  renderColTags();
+  const ep=document.getElementById('extracted-prev');
+  if(!pendingIsManual&&Object.keys(extractedData).length){
+    ep.innerHTML=`<div class="info-amber"><strong>📋 Dati estratti:</strong>${Object.entries(extractedData).map(([k,v])=>`<div style="font-size:12px;margin-top:3px"><strong>${esc(k)}:</strong> ${esc(String(v||'—'))}</div>`).join('')}</div>`;
+  }else ep.innerHTML='';
+  document.getElementById('btn-confirm').textContent=(!pendingIsManual&&Object.keys(extractedData).length)?'✅ Conferma e salva primo record':'✅ Conferma colonne';
+}
+function renderColTags(){document.getElementById('cols-tags').innerHTML=pendingCols.map((c,i)=>`<span class="tag">${esc(c)}<span class="x" onclick="removeCol(${i})">×</span></span>`).join('');}
+function removeCol(i){pendingCols.splice(i,1);renderColTags();}
+function addCol(){const v=document.getElementById('col-input').value.trim();if(v&&!pendingCols.includes(v)){pendingCols.push(v);renderColTags();}document.getElementById('col-input').value='';}
+async function confirmCols(){
+  if(!pendingCols.length){alert('Aggiungi almeno una colonna');return;}
+  const name=document.getElementById('new-name').value.trim();
+  const id=Date.now().toString();
+  const newDb={id,name,columns:[...pendingCols],rows:[],createdAt:new Date().toLocaleDateString('it-IT')};
+  await saveDatabase(newDb);dbs[id]=newDb;curDbId=id;
+  if(!pendingIsManual&&Object.keys(extractedData).length){
+    const row={_id:Date.now().toString(),_data:new Date().toLocaleDateString('it-IT')};
+    pendingCols.forEach(c=>{row[c]=extractedData[c]??'';});
+    await saveRecord(id,row);dbs[id].rows.push(row);
+  }
+  show('pg-viewdb',renderViewDb);
+}
+
+// ─── ADD DOC ─────────────────────────────────────────────────
+function initAddDoc(){
+  const db=dbs[curDbId];if(!db)return;
+  document.getElementById('add-fields').innerHTML=`<strong>Campi:</strong> ${db.columns.map(esc).join(' · ')}`;
+  document.getElementById('prev-add').style.display='none';
+  document.getElementById('btn-extract').style.display='none';
+  imgB64.add=null;show('pg-add');
+}
+async function doAddExtract(){
+  const db=dbs[curDbId];if(!db)return;
+  setLoading('btn-extract',true,'Estrazione dati...');
+  try{
+    const text=await callAI(`Analizza questo documento. Due compiti:
+1. Estrai valori per questi campi NOTI: ${db.columns.join(', ')}
+2. Cerca altri dati NON in quella lista
+
+Rispondi SOLO con questo JSON:
+{"known":{${db.columns.map(c=>`"${c}":""`).join(',')}},"new":{"CampoNuovo":"valore"}}
+Se non ci sono campi nuovi, "new" deve essere {}.`,'add');
+    const parsed=parseJSON(text);
+    const known=parsed?.known||{};const newF=parsed?.new||{};
+    newFieldsData={};
+    Object.entries(newF).forEach(([k,v])=>{
+      const lk=k.toLowerCase().replace(/\s/g,'');
+      const dup=db.columns.some(c=>c.toLowerCase().replace(/\s/g,'')=== lk);
+      if(!dup&&v&&String(v).trim())newFieldsData[k]=v;
+    });
+    extractedData=known;
+    if(Object.keys(newFieldsData).length){
+      document.getElementById('new-fields-list').innerHTML=Object.entries(newFieldsData).map(([k,v])=>`<div style="background:var(--green-s);border-radius:8px;padding:8px 12px;font-size:13px"><strong style="color:var(--green)">${esc(k)}:</strong> ${esc(String(v))}</div>`).join('');
+      document.getElementById('modal-new').style.display='flex';
+    }else{renderReview();show('pg-review');}
+  }catch(e){alert('Errore AI: '+e.message);}
+  finally{setLoading('btn-extract',false);}
+}
+async function acceptNewFields(){
+  const db=dbs[curDbId];db.columns=[...db.columns,...Object.keys(newFieldsData)];
+  await saveDatabase(db);extractedData={...extractedData,...newFieldsData};
+  document.getElementById('modal-new').style.display='none';renderReview();show('pg-review');
+}
+function rejectNewFields(){newFieldsData={};document.getElementById('modal-new').style.display='none';renderReview();show('pg-review');}
+function renderReview(){
+  const db=dbs[curDbId];
+  document.getElementById('review-fields').innerHTML=db.columns.map(c=>`<label class="lbl">${esc(c)}</label><input type="text" id="rv-${esc(c.replace(/\s/g,'_'))}" value="${esc(extractedData[c]||'')}" placeholder="${esc(c)}">`).join('');
+}
+async function saveRow(){
+  const db=dbs[curDbId];
+  const row={_id:Date.now().toString(),_data:new Date().toLocaleDateString('it-IT')};
+  db.columns.forEach(c=>{const el=document.getElementById('rv-'+c.replace(/\s/g,'_'));row[c]=el?el.value:'';});
+  await saveRecord(curDbId,row);db.rows.push(row);
+  imgB64.add=null;extractedData={};newFieldsData={};
+  show('pg-viewdb',renderViewDb);
+}
+
+// ─── INIT ────────────────────────────────────────────────────
+(async()=>{await loadData();document.getElementById('loading-overlay').style.display='none';renderHome();show('pg-home');})();
+</script>
+</body>
 </html>
