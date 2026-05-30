@@ -258,10 +258,24 @@ function loadImg(input,key){
   const file=input.files[0];if(!file)return;
   const rd=new FileReader();
   rd.onload=ev=>{
-    imgB64[key]=ev.target.result.split(',')[1];imgMime[key]=file.type;
-    const prev=document.getElementById('prev-'+key);prev.src=ev.target.result;prev.style.display='block';
-    if(key==='new'&&document.getElementById('new-name').value.trim())document.getElementById('btn-analyze').style.display='block';
-    if(key==='add')document.getElementById('btn-extract').style.display='block';
+    // Comprimi immagine prima di inviarla (max 1200px, qualità 80%)
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=1200;
+      let w=img.width,h=img.height;
+      if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const compressed=canvas.toDataURL('image/jpeg',0.8);
+      imgB64[key]=compressed.split(',')[1];
+      imgMime[key]='image/jpeg';
+      const prev=document.getElementById('prev-'+key);
+      prev.src=compressed;prev.style.display='block';
+      if(key==='new'&&document.getElementById('new-name').value.trim())document.getElementById('btn-analyze').style.display='block';
+      if(key==='add')document.getElementById('btn-extract').style.display='block';
+    };
+    img.src=ev.target.result;
   };
   rd.readAsDataURL(file);input.value='';
 }
@@ -285,10 +299,17 @@ async function callAI(prompt,imgKey=null){
   if(imgKey){body.image=imgB64[imgKey];body.mimeType=imgMime[imgKey];}
   const r=await fetch('/.netlify/functions/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d=await r.json();
-  return d.text||'{}';
+  console.log('Risposta funzione:', d);
+  if(d.error) throw new Error(d.error);
+  return d.text||'';
 }
-function parseJSON(text){try{return JSON.parse(text.replace(/```json|```/g,'').trim());}catch{return {};}}
-
+function parseJSON(text){
+  if(!text) return {};
+  // Cerca il primo { e l'ultimo } per estrarre JSON anche se c'è testo extra
+  const start=text.indexOf('{'); const end=text.lastIndexOf('}');
+  if(start===-1||end===-1) return {};
+  try{return JSON.parse(text.slice(start,end+1));}catch{return {};}
+}
 async function doFirstExtract(){
   const name=document.getElementById('new-name').value.trim();if(!name)return;
   setLoading('btn-analyze',true,'Analisi documento...');
