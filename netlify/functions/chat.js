@@ -36,9 +36,12 @@ exports.handler = async (event) => {
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
           try {
+            console.log('Gemini raw response:', data.substring(0, 500));
             const json = JSON.parse(data);
             if (json.error) return reject(new Error(json.error.message || JSON.stringify(json.error)));
-            resolve(json?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+            const txt = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            console.log('Gemini text:', txt.substring(0, 300));
+            resolve(txt);
           } catch(e) { reject(e); }
         });
       });
